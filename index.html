@@ -746,6 +746,15 @@
 
         return {
           autoHideOnScroll: behavior.autoHideOnScroll === true,
+          autoHideRoutes: Array.isArray(behavior.autoHideRoutes)
+            ? Array.from(
+                new Set(
+                  behavior.autoHideRoutes
+                    .map((route) => normalizeBottomNavRoute(route))
+                    .filter(Boolean),
+                ),
+              )
+            : [],
           scrollDelta: Math.max(
             1,
             parsePositiveNumber(behavior.scrollDelta, 8),
@@ -955,7 +964,10 @@
           return;
         }
 
-        if (!behavior.autoHideOnScroll) {
+        const shouldAutoHideOnThisRoute =
+          behavior.autoHideOnScroll || behavior.autoHideRoutes.includes(navRoute);
+
+        if (!shouldAutoHideOnThisRoute) {
           setBottomNavScrollHidden(nav, false);
           bottomNavLastScrollAnchor = currentY;
           bottomNavLastScrollSource = normalizedSource;

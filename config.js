@@ -689,6 +689,7 @@ const bottomNavConfig = {
   // Comportamento da barra durante o scroll
   behavior: {
     autoHideOnScroll: false,
+    autoHideRoutes: ["scenes-criar"],
     scrollDelta: 8,
     revealAtTop: 10,
     // Atalho nas páginas de controle: recolhe a nav para um único botão Home.

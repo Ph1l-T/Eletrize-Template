@@ -136,6 +136,7 @@
     storageMode: "local",
   };
   let activeSceneConfirmationResolver = null;
+  let activeSceneReviewResolver = null;
 
   function normalizeText(value) {
     return String(value || "").trim().toLowerCase();
@@ -899,6 +900,199 @@
         }
       };
       document.addEventListener("keydown", handleKeyDown);
+      confirmBtn.focus?.();
+    });
+  }
+
+  function ensureSceneReviewOverlay() {
+    let overlay = getEl("scene-save-review-overlay");
+    if (overlay) return overlay;
+
+    if (typeof document === "undefined" || !document.body) return null;
+
+    overlay = document.createElement("div");
+    overlay.id = "scene-save-review-overlay";
+    overlay.className = "scene-save-review-overlay";
+    overlay.hidden = true;
+    overlay.setAttribute("aria-hidden", "true");
+    overlay.innerHTML = `
+      <div
+        class="scene-save-review-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="scene-save-review-title"
+      >
+        <div class="scene-save-review-head">
+          <span class="scene-save-review-kicker">Revisão</span>
+          <h2 class="scene-save-review-title" id="scene-save-review-title">Conferir cenário</h2>
+        </div>
+
+        <div class="scene-save-review-body">
+          <section class="scene-save-review-summary" data-scene-review-summary></section>
+          <section class="scene-save-review-warning" data-scene-review-warning hidden></section>
+          <ol class="scene-save-review-steps" data-scene-review-steps></ol>
+        </div>
+
+        <div class="scene-save-review-actions">
+          <button type="button" class="scenes-btn scenes-btn--secondary" data-scene-review-cancel>
+            Voltar para editar
+          </button>
+          <button type="button" class="scenes-btn scenes-btn--primary" data-scene-review-confirm>
+            Confirmar e salvar
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    return overlay;
+  }
+
+  function stepUsesDemoDevice(step) {
+    const values = [
+      step?.deviceId,
+      step?.metadataId,
+      step?.transportId,
+      step?.volumeId,
+      step?.powerId,
+      step?.receiverId,
+      step?.displayId,
+    ];
+
+    const device = resolveSceneDevice(step);
+    if (device) {
+      values.push(
+        device.deviceId,
+        device.metadataId,
+        device.transportId,
+        device.volumeId,
+        device.powerId,
+        device.receiverId,
+        device.displayId,
+      );
+    }
+
+    return values.some((value) =>
+      String(value || "").trim().toUpperCase().startsWith("DEMO-"),
+    );
+  }
+
+  function buildSceneReviewSummary(sceneDraft) {
+    const steps = toArray(sceneDraft?.steps);
+    const environments = getSceneEnvironmentLabels(steps);
+    const demoCount = steps.filter(stepUsesDemoDevice).length;
+    const envText = environments.length
+      ? environments.join(", ")
+      : "Sem ambiente identificado";
+
+    return {
+      steps,
+      environments,
+      demoCount,
+      html: `
+        <div class="scene-save-review-name">${escapeHtml(sceneDraft?.name || "")}</div>
+        ${
+          sceneDraft?.description
+            ? `<p class="scene-save-review-description">${escapeHtml(sceneDraft.description)}</p>`
+            : ""
+        }
+        <div class="scene-save-review-metrics">
+          <span>${steps.length} ação${steps.length === 1 ? "" : "es"}</span>
+          <span>${environments.length || 0} ambiente${environments.length === 1 ? "" : "s"}</span>
+        </div>
+        <div class="scene-save-review-envs">${escapeHtml(envText)}</div>
+      `,
+      warningHtml: demoCount
+        ? `Este cenário possui ${demoCount} ação${demoCount === 1 ? "" : "es"} com dispositivo DEMO. Troque os IDs antes de usar em cliente real.`
+        : "",
+    };
+  }
+
+  function requestSceneSaveReview(sceneDraft) {
+    const overlay = ensureSceneReviewOverlay();
+    const steps = toArray(sceneDraft?.steps);
+
+    if (!overlay) {
+      return Promise.resolve(
+        global.confirm(
+          `Salvar o cenário "${sceneDraft?.name || ""}" com ${steps.length} ação${steps.length === 1 ? "" : "es"}?`,
+        ),
+      );
+    }
+
+    if (activeSceneReviewResolver) {
+      activeSceneReviewResolver(false);
+      activeSceneReviewResolver = null;
+    }
+
+    const dialog = overlay.querySelector(".scene-save-review-dialog");
+    const summaryEl = overlay.querySelector("[data-scene-review-summary]");
+    const warningEl = overlay.querySelector("[data-scene-review-warning]");
+    const stepsEl = overlay.querySelector("[data-scene-review-steps]");
+    const cancelBtn = overlay.querySelector("[data-scene-review-cancel]");
+    const confirmBtn = overlay.querySelector("[data-scene-review-confirm]");
+
+    if (!summaryEl || !warningEl || !stepsEl || !cancelBtn || !confirmBtn) {
+      return Promise.resolve(
+        global.confirm(
+          `Salvar o cenário "${sceneDraft?.name || ""}" com ${steps.length} ação${steps.length === 1 ? "" : "es"}?`,
+        ),
+      );
+    }
+
+    const summary = buildSceneReviewSummary(sceneDraft);
+    summaryEl.innerHTML = summary.html;
+    warningEl.hidden = !summary.warningHtml;
+    warningEl.textContent = summary.warningHtml;
+    stepsEl.innerHTML = summary.steps
+      .map((step, index) => {
+        const meta = formatStepMetaText(step);
+        return `
+          <li class="scene-save-review-step">
+            <span class="scene-save-review-step-index">${index + 1}</span>
+            <span class="scene-save-review-step-copy">
+              <span class="scene-save-review-step-title">${escapeHtml(formatStepActionTitle(step))}</span>
+              ${meta ? `<span class="scene-save-review-step-meta">${escapeHtml(meta)}</span>` : ""}
+            </span>
+          </li>
+        `;
+      })
+      .join("");
+
+    return new Promise((resolve) => {
+      const finish = (confirmed) => {
+        overlay.hidden = true;
+        overlay.classList.remove("is-visible");
+        overlay.setAttribute("aria-hidden", "true");
+        cancelBtn.onclick = null;
+        confirmBtn.onclick = null;
+        overlay.onclick = null;
+        document.removeEventListener("keydown", handleKeyDown);
+        if (activeSceneReviewResolver === finish) {
+          activeSceneReviewResolver = null;
+        }
+        resolve(Boolean(confirmed));
+      };
+
+      const handleKeyDown = (event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          finish(false);
+        }
+      };
+
+      activeSceneReviewResolver = finish;
+      overlay.hidden = false;
+      overlay.classList.add("is-visible");
+      overlay.setAttribute("aria-hidden", "false");
+      cancelBtn.onclick = () => finish(false);
+      confirmBtn.onclick = () => finish(true);
+      overlay.onclick = (event) => {
+        if (event.target === overlay) {
+          finish(false);
+        }
+      };
+      document.addEventListener("keydown", handleKeyDown);
+      dialog?.setAttribute("tabindex", "-1");
       confirmBtn.focus?.();
     });
   }
@@ -1953,6 +2147,17 @@
       return;
     }
 
+    const steps = state.draftSteps.map((step) => ({ ...step }));
+    const confirmed = await requestSceneSaveReview({
+      name,
+      description,
+      steps,
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
     const now = Date.now();
     let successMessage = "";
     const originalLabel = saveButton?.textContent || "Salvar";
@@ -1974,7 +2179,7 @@
           ...current,
           name,
           description,
-          steps: state.draftSteps.map((step) => ({ ...step })),
+          steps,
           createdAt: current.createdAt,
           updatedAt: now,
         });
@@ -1985,7 +2190,7 @@
         const savedScene = await createSceneRecord({
           name,
           description,
-          steps: state.draftSteps.map((step) => ({ ...step })),
+          steps,
           createdAt: now,
           updatedAt: now,
         });

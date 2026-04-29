@@ -34,7 +34,7 @@ Este arquivo registra as melhorias planejadas para modernizar o criador/editor d
   - Festa;
   - Relaxar.
 - [x] Melhorar cards da lista de cenarios com icone, quantidade de acoes, ambientes usados e menu de opcoes.
-- Adicionar tela de revisao antes de salvar.
+- [x] Adicionar tela de revisao antes de salvar.
 
 ## Observacoes tecnicas
 

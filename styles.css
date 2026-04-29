@@ -5008,6 +5008,200 @@ body.app-info-open {
   margin-bottom: 10px;
 }
 
+.scene-save-review-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2400;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.scene-save-review-overlay.is-visible {
+  display: flex;
+}
+
+.scene-save-review-dialog {
+  box-sizing: border-box;
+  width: min(560px, 100%);
+  max-height: min(82dvh, 680px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  background: rgba(22, 22, 26, 0.98);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.46);
+  padding: 16px;
+}
+
+.scene-save-review-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.scene-save-review-kicker {
+  color: rgba(255, 255, 255, 0.56);
+  font-family: Raleway, Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.scene-save-review-title {
+  margin: 0;
+  color: #fff;
+  font-family: Raleway, Arial, sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.16;
+}
+
+.scene-save-review-body {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.scene-save-review-summary {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px;
+}
+
+.scene-save-review-name {
+  color: #fff;
+  font-family: Raleway, Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.scene-save-review-description {
+  margin: 5px 0 0;
+  color: rgba(255, 255, 255, 0.66);
+  font-family: Raleway, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.32;
+  overflow-wrap: anywhere;
+}
+
+.scene-save-review-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.72);
+  font-family: Raleway, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.scene-save-review-metrics span {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0 9px;
+}
+
+.scene-save-review-envs {
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.62);
+  font-family: Raleway, Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.scene-save-review-warning {
+  border: 1px solid rgba(255, 196, 87, 0.34);
+  border-radius: 12px;
+  background: rgba(255, 196, 87, 0.1);
+  color: rgba(255, 224, 170, 0.96);
+  font-family: Raleway, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.35;
+  padding: 10px 12px;
+}
+
+.scene-save-review-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scene-save-review-step {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 10px;
+}
+
+.scene-save-review-step-index {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.86);
+  font-family: Raleway, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.scene-save-review-step-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.scene-save-review-step-title {
+  color: #fff;
+  font-family: Raleway, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.scene-save-review-step-meta {
+  color: rgba(255, 255, 255, 0.58);
+  font-family: Raleway, Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.scene-save-review-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .scenes-user-list {
   display: grid;
   grid-template-columns: 1fr;
@@ -5343,6 +5537,20 @@ body.app-info-open {
 }
 
 @media (width <= 420px) {
+  .scene-save-review-overlay {
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .scene-save-review-dialog {
+    max-height: calc(100dvh - 24px);
+    width: 100%;
+  }
+
+  .scene-save-review-actions {
+    grid-template-columns: 1fr;
+  }
+
   .scene-step-item {
     grid-template-columns: auto 1fr;
   }

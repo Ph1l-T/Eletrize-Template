@@ -33,7 +33,7 @@ Este arquivo registra as melhorias planejadas para modernizar o criador/editor d
   - Jantar;
   - Festa;
   - Relaxar.
-- Melhorar cards da lista de cenarios com icone, quantidade de acoes, ambientes usados e menu de opcoes.
+- [x] Melhorar cards da lista de cenarios com icone, quantidade de acoes, ambientes usados e menu de opcoes.
 - Adicionar tela de revisao antes de salvar.
 
 ## Observacoes tecnicas

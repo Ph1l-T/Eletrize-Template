@@ -5017,16 +5017,55 @@ body.app-info-open {
 .scene-user-card {
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.07),
+    rgba(255, 255, 255, 0.025)
+  );
   padding: 12px;
 }
 
 .scene-user-head {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 8px;
+}
+
+.scene-user-title-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scene-user-icon-wrap {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.scene-user-icon {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  filter: brightness(0) saturate(100%) invert(100%);
+  opacity: 0.92;
+}
+
+.scene-user-title-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .scene-user-name {
@@ -5035,14 +5074,100 @@ body.app-info-open {
   font-family: Raleway, Arial, sans-serif;
   font-size: 18px;
   font-weight: 600;
+  line-height: 1.18;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.scene-user-count {
-  white-space: nowrap;
+.scene-user-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   color: rgba(255, 255, 255, 0.58);
   font-family: Raleway, Arial, sans-serif;
   font-size: 12px;
   font-weight: 600;
+  line-height: 1.2;
+}
+
+.scene-user-metrics span + span::before {
+  content: "";
+  width: 4px;
+  height: 4px;
+  margin-right: 6px;
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.scene-user-menu {
+  position: relative;
+  min-width: 34px;
+}
+
+.scene-user-menu[open] {
+  z-index: 4;
+}
+
+.scene-user-menu-trigger {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  list-style: none;
+  cursor: pointer;
+}
+
+.scene-user-menu-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.scene-user-menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 128px;
+  padding: 6px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(22, 22, 26, 0.98);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.36);
+}
+
+.scene-user-menu-item {
+  width: 100%;
+  min-height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  font-family: Raleway, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.scene-user-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.scene-user-menu-item--danger {
+  color: rgba(255, 145, 145, 0.96);
 }
 
 .scene-user-desc {
@@ -5051,6 +5176,36 @@ body.app-info-open {
   font-family: Raleway, Arial, sans-serif;
   font-size: 13px;
   line-height: 1.3;
+}
+
+.scene-user-envs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.scene-user-env-chip {
+  max-width: 140px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.78);
+  font-family: Raleway, Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scene-user-env-chip--more {
+  color: #fff;
 }
 
 .scene-user-preview {
@@ -5068,9 +5223,12 @@ body.app-info-open {
 
 .scene-user-actions {
   margin-top: 10px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.scene-user-run-btn {
+  width: 100%;
 }
 
 .scene-user-empty {

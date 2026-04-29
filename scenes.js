@@ -2355,6 +2355,64 @@
     }
   }
 
+  function getSceneEnvironmentLabels(steps) {
+    const labels = [];
+    const seen = new Set();
+
+    toArray(steps).forEach((step) => {
+      const device = resolveSceneDevice(step);
+      const label = stepLocationText(step) || String(device?.envName || "").trim();
+      const key = normalizeText(label);
+      if (!label || seen.has(key)) return;
+      seen.add(key);
+      labels.push(label);
+    });
+
+    return labels;
+  }
+
+  function getSceneDominantType(steps) {
+    const counts = new Map();
+    toArray(steps).forEach((step) => {
+      const device = resolveSceneDevice(step);
+      const type = normalizeText(step?.deviceType || device?.type);
+      if (!type) return;
+      counts.set(type, (counts.get(type) || 0) + 1);
+    });
+
+    let dominantType = "";
+    let dominantCount = 0;
+    counts.forEach((count, type) => {
+      if (count > dominantCount) {
+        dominantType = type;
+        dominantCount = count;
+      }
+    });
+
+    return dominantType;
+  }
+
+  function renderSceneEnvironmentChips(steps) {
+    const labels = getSceneEnvironmentLabels(steps);
+    if (!labels.length) return "";
+
+    const visibleLabels = labels.slice(0, 3);
+    const remaining = Math.max(0, labels.length - visibleLabels.length);
+
+    return `
+      <div class="scene-user-envs" aria-label="Ambientes usados">
+        ${visibleLabels
+          .map((label) => `<span class="scene-user-env-chip">${escapeHtml(label)}</span>`)
+          .join("")}
+        ${
+          remaining
+            ? `<span class="scene-user-env-chip scene-user-env-chip--more">+ ${remaining}</span>`
+            : ""
+        }
+      </div>
+    `;
+  }
+
   function renderScenesList() {
     const list = getEl("scenes-user-list");
     if (!list) return;
@@ -2370,6 +2428,15 @@
         const steps = toArray(scene.steps);
         const preview = steps.slice(0, 3);
         const remaining = Math.max(0, steps.length - preview.length);
+        const environments = getSceneEnvironmentLabels(steps);
+        const dominantType = getSceneDominantType(steps);
+        const icon = dominantType
+          ? resolveDeviceIcon(dominantType)
+          : "images/icons/icon-scenes.svg";
+        const envCount = environments.length;
+        const envSummary = envCount
+          ? `${envCount} ambiente${envCount === 1 ? "" : "s"}`
+          : "Sem ambiente";
         const previewHtml = preview.length
           ? `
             <ol class="scene-user-preview">
@@ -2388,19 +2455,35 @@
         return `
           <article class="scene-user-card" data-scene-id="${escapeHtml(scene.id)}">
             <div class="scene-user-head">
-              <h3 class="scene-user-name">${escapeHtml(scene.name)}</h3>
-              <span class="scene-user-count">${steps.length} ação${steps.length === 1 ? "" : "es"}</span>
+              <div class="scene-user-title-row">
+                <span class="scene-user-icon-wrap" aria-hidden="true">
+                  <img class="scene-user-icon" src="${escapeHtml(icon)}" alt="">
+                </span>
+                <div class="scene-user-title-main">
+                  <h3 class="scene-user-name">${escapeHtml(scene.name)}</h3>
+                  <div class="scene-user-metrics">
+                    <span>${steps.length} ação${steps.length === 1 ? "" : "es"}</span>
+                    <span>${escapeHtml(envSummary)}</span>
+                  </div>
+                </div>
+              </div>
+              <details class="scene-user-menu">
+                <summary class="scene-user-menu-trigger" aria-label="Opções do cenário">...</summary>
+                <div class="scene-user-menu-panel">
+                  <button type="button" class="scene-user-menu-item" data-scene-action="edit" data-scene-id="${escapeHtml(scene.id)}">Editar</button>
+                  <button type="button" class="scene-user-menu-item scene-user-menu-item--danger" data-scene-action="delete" data-scene-id="${escapeHtml(scene.id)}">Excluir</button>
+                </div>
+              </details>
             </div>
             ${
               scene.description
                 ? `<p class="scene-user-desc">${escapeHtml(scene.description)}</p>`
                 : ""
             }
+            ${renderSceneEnvironmentChips(steps)}
             ${previewHtml}
             <div class="scene-user-actions">
-              <button type="button" class="scenes-btn scenes-btn--primary" data-scene-action="run" data-scene-id="${escapeHtml(scene.id)}">Executar</button>
-              <button type="button" class="scenes-btn scenes-btn--secondary" data-scene-action="edit" data-scene-id="${escapeHtml(scene.id)}">Editar</button>
-              <button type="button" class="scenes-btn scenes-btn--ghost" data-scene-action="delete" data-scene-id="${escapeHtml(scene.id)}">Excluir</button>
+              <button type="button" class="scenes-btn scenes-btn--primary scene-user-run-btn" data-scene-action="run" data-scene-id="${escapeHtml(scene.id)}">Executar</button>
             </div>
           </article>`;
       })

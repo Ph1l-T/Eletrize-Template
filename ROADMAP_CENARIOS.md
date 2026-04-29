@@ -20,7 +20,7 @@ Este arquivo registra as melhorias planejadas para modernizar o criador/editor d
   3. dispositivo;
   4. acao;
   5. parametros da acao.
-- [x] Usar uma folha inferior/modal no mobile para escolher dispositivos e acoes.
+- [x] Manter os seletores inline no retrato e no paisagem, sem folha inferior.
 - [x] Agrupar a lista de acoes por ambiente e numerar cada etapa.
 
 ## Prioridade 3

@@ -1,0 +1,5 @@
+name = "eletrize-template"
+type = "site"
+
+[site]
+bucket = "."

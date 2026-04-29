@@ -35,6 +35,7 @@ Este arquivo registra as melhorias planejadas para modernizar o criador/editor d
   - Relaxar.
 - [x] Melhorar cards da lista de cenarios com icone, quantidade de acoes, ambientes usados e menu de opcoes.
 - [x] Adicionar tela de revisao antes de salvar.
+- [x] Adicionar alertas inteligentes na revisao para IDs demo, duplicidades, conflitos e parametros ausentes.
 
 ## Observacoes tecnicas
 

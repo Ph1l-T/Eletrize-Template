@@ -976,10 +976,155 @@
     );
   }
 
+  function getReviewStepTargetId(step) {
+    const command = resolveSceneExecutionCommand(step);
+    const targetId =
+      resolveSceneExecutionTargetId(step, command) ||
+      String(step?.deviceId || "").trim();
+    return String(targetId || "").trim();
+  }
+
+  function getReviewStepCommandKey(step) {
+    const command = resolveSceneExecutionCommand(step) || step?.command;
+    return normalizeText(command);
+  }
+
+  function getReviewStepDuplicateKey(step) {
+    const device = resolveSceneDevice(step);
+    return [
+      getReviewStepTargetId(step),
+      normalizeText(step?.deviceType || device?.type),
+      getReviewStepCommandKey(step),
+      String(step?.value || "").trim(),
+    ].join("|");
+  }
+
+  function classifyReviewCommand(command) {
+    const normalized = normalizeText(command);
+    if (normalized === "on" || normalized === "poweron") return "on";
+    if (normalized === "off" || normalized === "poweroff") return "off";
+    if (normalized === "open") return "open";
+    if (normalized === "close") return "close";
+    if (normalized === "mute") return "mute";
+    if (normalized === "unmute") return "unmute";
+    return normalized;
+  }
+
+  function buildSceneReviewIssues(steps) {
+    const issues = [];
+    const safeSteps = toArray(steps);
+    const demoCount = safeSteps.filter(stepUsesDemoDevice).length;
+
+    if (demoCount > 0) {
+      issues.push({
+        title: "Dispositivos demo",
+        detail: `Há ${demoCount} ação${demoCount === 1 ? "" : "es"} usando ID DEMO. Troque os IDs antes de usar em cliente real.`,
+      });
+    }
+
+    const unresolvedCount = safeSteps.filter((step) => !resolveSceneDevice(step)).length;
+    if (unresolvedCount > 0) {
+      issues.push({
+        title: "Dispositivo não encontrado no catálogo",
+        detail: `${unresolvedCount} ação${unresolvedCount === 1 ? "" : "es"} aponta para dispositivo que não foi localizado no config atual.`,
+      });
+    }
+
+    const missingValueSteps = safeSteps.filter((step) => {
+      const device = resolveSceneDevice(step) || { type: step?.deviceType };
+      const valueConfig = getCommandValueConfig(device, step?.command);
+      const requiresValue = valueConfig?.visible === true && valueConfig?.kind === "range";
+      return requiresValue && !String(step?.value || "").trim();
+    });
+    if (missingValueSteps.length > 0) {
+      issues.push({
+        title: "Parâmetro ausente",
+        detail: `${missingValueSteps.length} ação${missingValueSteps.length === 1 ? "" : "es"} parece exigir valor, como intensidade, volume ou temperatura.`,
+      });
+    }
+
+    const duplicateGroups = new Map();
+    safeSteps.forEach((step) => {
+      const key = getReviewStepDuplicateKey(step);
+      if (!key.replaceAll("|", "")) return;
+      if (!duplicateGroups.has(key)) duplicateGroups.set(key, []);
+      duplicateGroups.get(key).push(step);
+    });
+    const repeatedGroups = Array.from(duplicateGroups.values()).filter(
+      (group) => group.length > 1,
+    );
+    if (repeatedGroups.length > 0) {
+      const repeatedTotal = repeatedGroups.reduce(
+        (total, group) => total + group.length,
+        0,
+      );
+      issues.push({
+        title: "Ações repetidas",
+        detail: `${repeatedTotal} ações estão repetindo o mesmo dispositivo, comando e valor. Revise se isso não foi adicionado por engano.`,
+      });
+    }
+
+    const targetCommandMap = new Map();
+    safeSteps.forEach((step) => {
+      const targetId = getReviewStepTargetId(step);
+      if (!targetId) return;
+      if (!targetCommandMap.has(targetId)) {
+        targetCommandMap.set(targetId, {
+          labels: new Set(),
+          commands: new Set(),
+        });
+      }
+      const entry = targetCommandMap.get(targetId);
+      entry.labels.add(cleanStepDeviceName(step));
+      entry.commands.add(classifyReviewCommand(getReviewStepCommandKey(step)));
+    });
+
+    const conflictLabels = [];
+    targetCommandMap.forEach((entry) => {
+      const commands = entry.commands;
+      const hasPowerConflict = commands.has("on") && commands.has("off");
+      const hasCurtainConflict = commands.has("open") && commands.has("close");
+      const hasMuteConflict = commands.has("mute") && commands.has("unmute");
+      if (hasPowerConflict || hasCurtainConflict || hasMuteConflict) {
+        conflictLabels.push(Array.from(entry.labels)[0] || "Dispositivo");
+      }
+    });
+
+    if (conflictLabels.length > 0) {
+      const visibleLabels = conflictLabels.slice(0, 3).join(", ");
+      const remaining = conflictLabels.length - Math.min(conflictLabels.length, 3);
+      issues.push({
+        title: "Comandos conflitantes",
+        detail: `O cenário tem comandos opostos para ${visibleLabels}${remaining > 0 ? ` e mais ${remaining}` : ""}. Pode ser intencional, mas vale revisar a ordem.`,
+      });
+    }
+
+    return issues;
+  }
+
+  function renderSceneReviewIssues(issues) {
+    if (!issues.length) return "";
+    return `
+      <h3 class="scene-save-review-warning-title">Pontos para revisar</h3>
+      <ul class="scene-save-review-warning-list">
+        ${issues
+          .map(
+            (issue) => `
+              <li>
+                <strong>${escapeHtml(issue.title)}</strong>
+                <span>${escapeHtml(issue.detail)}</span>
+              </li>
+            `,
+          )
+          .join("")}
+      </ul>
+    `;
+  }
+
   function buildSceneReviewSummary(sceneDraft) {
     const steps = toArray(sceneDraft?.steps);
     const environments = getSceneEnvironmentLabels(steps);
-    const demoCount = steps.filter(stepUsesDemoDevice).length;
+    const issues = buildSceneReviewIssues(steps);
     const envText = environments.length
       ? environments.join(", ")
       : "Sem ambiente identificado";
@@ -987,7 +1132,7 @@
     return {
       steps,
       environments,
-      demoCount,
+      issues,
       html: `
         <div class="scene-save-review-name">${escapeHtml(sceneDraft?.name || "")}</div>
         ${
@@ -1001,9 +1146,7 @@
         </div>
         <div class="scene-save-review-envs">${escapeHtml(envText)}</div>
       `,
-      warningHtml: demoCount
-        ? `Este cenário possui ${demoCount} ação${demoCount === 1 ? "" : "es"} com dispositivo DEMO. Troque os IDs antes de usar em cliente real.`
-        : "",
+      warningHtml: renderSceneReviewIssues(issues),
     };
   }
 
@@ -1042,7 +1185,7 @@
     const summary = buildSceneReviewSummary(sceneDraft);
     summaryEl.innerHTML = summary.html;
     warningEl.hidden = !summary.warningHtml;
-    warningEl.textContent = summary.warningHtml;
+    warningEl.innerHTML = summary.warningHtml;
     stepsEl.innerHTML = summary.steps
       .map((step, index) => {
         const meta = formatStepMetaText(step);

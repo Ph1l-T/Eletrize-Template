@@ -5138,6 +5138,43 @@ body.app-info-open {
   padding: 10px 12px;
 }
 
+.scene-save-review-warning-title {
+  margin: 0 0 8px;
+  color: #fff;
+  font-family: Raleway, Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.scene-save-review-warning-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scene-save-review-warning-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.scene-save-review-warning-list strong {
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.scene-save-review-warning-list span {
+  color: rgba(255, 224, 170, 0.9);
+  font-size: 12px;
+  line-height: 1.32;
+}
+
 .scene-save-review-steps {
   list-style: none;
   margin: 0;

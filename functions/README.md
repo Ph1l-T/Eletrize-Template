@@ -49,6 +49,11 @@ Credenciais Hubitat (opcional, recomendado mover para secret):
 - `HUBITAT_BASE_URL=...`
 - `HUBITAT_ACCESS_TOKEN=...`
 
+Credenciais do External Rule Engine (rotinas):
+
+- `RULE_ENGINE_BASE_URL=http://HUB_IP/apps/api/APP_ID`
+- `RULE_ENGINE_ACCESS_TOKEN=...`
+
 ## Observacoes
 
 - Se `AUTH_ENABLED` nao estiver definido, a auth e ativada automaticamente quando `SUPABASE_URL` e `SUPABASE_ANON_KEY` estiverem preenchidos.

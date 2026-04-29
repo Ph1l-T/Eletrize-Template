@@ -36,6 +36,7 @@
     <link rel="preload" href="styles.css?v=1.0.41" as="style" />
     <link rel="stylesheet" href="styles.css?v=1.0.41" />
     <link rel="stylesheet" href="main-home.css?v=1.0.0" />
+    <link rel="stylesheet" href="routines.css?v=1.0.1" />
     <script src="config.js?v=1.0.21"></script>
     <link rel="icon" href="images/pwa/app-icon-192.png" type="image/png" />
     <link rel="manifest" href="manifest.json" />
@@ -1806,6 +1807,21 @@
           document.head.appendChild(script);
         });
         return scenesScriptPromise;
+      }
+
+      let routinesScriptPromise = null;
+      function ensureRoutinesScript() {
+        if (routinesScriptPromise) return routinesScriptPromise;
+        routinesScriptPromise = new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "routines.js?v=1.0.0";
+          script.async = true;
+          script.onload = resolve;
+          script.onerror = () =>
+            reject(new Error("Falha ao carregar routines.js"));
+          document.head.appendChild(script);
+        });
+        return routinesScriptPromise;
       }
 
       const CURTAIN_SECTIONS =
@@ -4001,6 +4017,9 @@
                             <button type="button" id="scene-new-btn" class="control-card large scene-control-card scene-control-card--create">
                                 <div class="control-label">Criar Cenário</div>
                             </button>
+                            <button type="button" id="routine-new-btn" class="control-card large scene-control-card scene-control-card--routine">
+                                <div class="control-label">Criar Rotina</div>
+                            </button>
                         </section>
 
                         <div class="scenes-divider" aria-hidden="true"></div>
@@ -4008,6 +4027,14 @@
                         <section class="scenes-list-card">
                             <div id="scenes-feedback" class="scenes-feedback" aria-live="polite"></div>
                             <div id="scenes-user-list" class="scenes-user-list"></div>
+                        </section>
+
+                        <section class="routines-list-panel routines-list-panel--embedded">
+                            <div class="routines-section-head">
+                                <h2 class="routines-section-title">Rotinas</h2>
+                            </div>
+                            <div id="routines-feedback" class="routines-feedback" aria-live="polite"></div>
+                            <div id="routines-list" class="routines-list"></div>
                         </section>
                     </div>
                 </div>
@@ -4161,6 +4188,78 @@
                             </div>
 
                             <div id="scenes-feedback" class="scenes-feedback" aria-live="polite"></div>
+                        </section>
+                    </div>
+                </div>
+            </main>
+        `,
+
+        "routines-criar": () => `
+             <main class="container routines-page-container">
+                <div class="page active routines-builder-page" data-page="routines-builder">
+                    <div class="page-header">
+                        <button class="back-btn" onclick="spaNavigate('scenes')">
+                            <img src="images/icons/back-button.svg" alt="Voltar">
+                        </button>
+                        <h1 class="page-title">Criar Rotina</h1>
+                    </div>
+
+                    <div class="routines-shell routines-shell--builder">
+                        <section class="routines-builder-panel">
+                            <div class="routines-builder-head">
+                                <span class="routines-kicker">Agenda</span>
+                                <h2 class="routines-title">Ligar e desligar por horário</h2>
+                                <p class="routines-subtitle">Escolha o dispositivo, os horários e os dias da semana.</p>
+                            </div>
+
+                            <div class="routines-form-grid">
+                                <label class="routines-field routines-field--wide">
+                                    <span>Nome da rotina</span>
+                                    <input id="routine-name-input" class="routines-input" type="text" maxlength="80" placeholder="Ex: Luz do jardim" />
+                                </label>
+
+                                <label class="routines-field routines-field--wide">
+                                    <span>Dispositivo</span>
+                                    <select id="routine-device-select" class="routines-input">
+                                        <option value="">Carregando dispositivos...</option>
+                                    </select>
+                                </label>
+
+                                <label class="routines-field">
+                                    <span>Ligar às</span>
+                                    <input id="routine-on-time" class="routines-input" type="time" value="23:00" />
+                                </label>
+
+                                <label class="routines-field">
+                                    <span>Desligar às</span>
+                                    <input id="routine-off-time" class="routines-input" type="time" value="06:00" />
+                                </label>
+                            </div>
+
+                            <div class="routines-days-card">
+                                <div class="routines-days-head">
+                                    <span>Dias de execução</span>
+                                    <button type="button" id="routine-days-all" class="routines-btn routines-btn--ghost">Todos</button>
+                                </div>
+                                <div class="routines-days" id="routine-days">
+                                    <button type="button" class="routine-day is-selected" data-day="mon">Seg</button>
+                                    <button type="button" class="routine-day is-selected" data-day="tue">Ter</button>
+                                    <button type="button" class="routine-day is-selected" data-day="wed">Qua</button>
+                                    <button type="button" class="routine-day is-selected" data-day="thu">Qui</button>
+                                    <button type="button" class="routine-day is-selected" data-day="fri">Sex</button>
+                                    <button type="button" class="routine-day is-selected" data-day="sat">Sáb</button>
+                                    <button type="button" class="routine-day is-selected" data-day="sun">Dom</button>
+                                </div>
+                            </div>
+
+                            <div class="routines-preview" id="routine-preview"></div>
+
+                            <div class="routines-actions">
+                                <button type="button" id="routine-save-btn" class="routines-btn routines-btn--primary">Salvar na Hubitat</button>
+                                <button type="button" id="routine-back-btn" class="routines-btn routines-btn--secondary">Voltar</button>
+                            </div>
+
+                            <div id="routines-feedback" class="routines-feedback" aria-live="polite"></div>
                         </section>
                     </div>
                 </div>
@@ -6166,6 +6265,18 @@
             })
             .catch((error) =>
               console.error("Erro ao carregar scenes.js", error),
+            );
+        }
+
+        if (page === "scenes" || page === "routines-criar") {
+          ensureRoutinesScript()
+            .then(() => {
+              if (typeof initRoutinesPage === "function") {
+                initRoutinesPage();
+              }
+            })
+            .catch((error) =>
+              console.error("Erro ao carregar routines.js", error),
             );
         }
 

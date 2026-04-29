@@ -4,6 +4,7 @@
     "/polling",
     "/hubitat-proxy",
     "/session-bootstrap",
+    "/rule-engine-proxy",
   ]);
 
   const state = {

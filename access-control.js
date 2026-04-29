@@ -404,7 +404,11 @@
       return getAllowedEnvironmentKeys("view").length > 0;
     }
 
-    if (normalizedRoute === "scenes" || normalizedRoute === "scenes-criar") {
+    if (
+      normalizedRoute === "scenes" ||
+      normalizedRoute === "scenes-criar" ||
+      normalizedRoute === "routines-criar"
+    ) {
       return canCreateScenes();
     }
 
@@ -431,7 +435,12 @@
       return requested;
     }
 
-    const preferredFallbacks = ["home", "ambientes", "curtains", "scenes"];
+    const preferredFallbacks = [
+      "home",
+      "ambientes",
+      "curtains",
+      "scenes",
+    ];
     const fallback = preferredFallbacks.find((candidate) =>
       canUseRoute(candidate),
     );

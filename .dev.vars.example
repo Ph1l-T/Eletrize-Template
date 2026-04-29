@@ -12,3 +12,8 @@ ACCESS_POLICY_CACHE_TTL_SECONDS=21600
 
 HUBITAT_BASE_URL=
 HUBITAT_ACCESS_TOKEN=
+
+# External Rule Engine custom app.
+# Use a reachable URL for the environment running the Function.
+RULE_ENGINE_BASE_URL=
+RULE_ENGINE_ACCESS_TOKEN=

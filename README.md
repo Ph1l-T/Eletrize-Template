@@ -52,12 +52,16 @@ Nao coloque token real do Hubitat no frontend. Em producao, configure no Cloudfl
 
 - `HUBITAT_BASE_URL`
 - `HUBITAT_ACCESS_TOKEN`
+- `RULE_ENGINE_BASE_URL`
+- `RULE_ENGINE_ACCESS_TOKEN`
 - `AUTH_ENABLED`
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `ALLOWED_EMAILS` ou `ALLOWED_EMAIL_DOMAINS`
 
 Use `.dev.vars.example` como referencia de variaveis. O arquivo real `.dev.vars` deve ficar fora do controle de versao.
+
+Para rotinas, `RULE_ENGINE_BASE_URL` precisa ser alcancavel pelo ambiente que executa a Function. Se a URL do app Hubitat for local (`http://HUB_IP/...`) e o dashboard estiver publicado no Cloudflare Pages, exponha esse endpoint por uma rede segura/tunnel ou execute a ponte em um ambiente dentro da rede local.
 
 ## Datas festivas no clima
 

@@ -91,6 +91,7 @@ const CLIENT_CONFIG = {
       htv: { label: "HTV", icon: "images/icons/icon-htv.svg" },
       home: { label: "Home", icon: "images/icons/icon-home.svg" },
       scenes: { label: "Cenários", icon: "images/icons/icon-scenes.svg" },
+      routines: { label: "Rotinas", icon: "images/icons/icon-scenes.svg" },
       bluray: { label: "Blu-ray", icon: "images/icons/icon-bluray.svg" },
       appletv: { label: "Apple TV", icon: "images/icons/icon-apple-tv.svg" },
       clarotv: { label: "Claro TV", icon: "images/icons/icon-clarotv.svg" },

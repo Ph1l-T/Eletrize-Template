@@ -1,9 +1,10 @@
-﻿const CACHE_VERSION = "template-v1.0.0";
+﻿const CACHE_VERSION = "template-v1.0.2";
 const CACHE_NAME = `eletrize-${CACHE_VERSION}`;
 const PRECACHE_ASSETS = [
   "/",
   "/index.html",
   "/styles.css?v=1.0.41",
+  "/routines.css?v=1.0.1",
   "/script.js?v=1.0.26",
   "/auth.js?v=1.0.0",
   "/access-control.js?v=1.0.1",
@@ -68,6 +69,10 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (url.pathname.startsWith("/polling")) {
+    return;
+  }
+
+  if (url.pathname.startsWith("/rule-engine-proxy")) {
     return;
   }
 

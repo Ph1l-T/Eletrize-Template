@@ -206,6 +206,37 @@ export function getHubitatCredentials(env) {
   };
 }
 
+export function getRuleEngineCredentials(env) {
+  const baseUrl = String(
+    env?.RULE_ENGINE_BASE_URL ||
+      env?.HUBITAT_RULE_ENGINE_BASE_URL ||
+      "",
+  ).trim();
+  const accessToken = String(
+    env?.RULE_ENGINE_ACCESS_TOKEN ||
+      env?.HUBITAT_RULE_ENGINE_ACCESS_TOKEN ||
+      "",
+  ).trim();
+
+  if (!baseUrl || !accessToken) {
+    return {
+      ok: false,
+      response: jsonResponse(
+        {
+          error: "Rule engine credentials are not configured",
+        },
+        500,
+      ),
+    };
+  }
+
+  return {
+    ok: true,
+    baseUrl: baseUrl.replace(/\/$/, ""),
+    accessToken,
+  };
+}
+
 function isAuthEnabled(env) {
   const forcedFlag = env?.AUTH_ENABLED;
 

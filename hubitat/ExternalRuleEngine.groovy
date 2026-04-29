@@ -74,6 +74,7 @@ def initialize() {
   if (!(state.rules instanceof Map)) state.rules = [:]
   if (!(state.executions instanceof Map)) state.executions = [:]
   if (!(state.executionRate instanceof Map)) state.executionRate = [:]
+  if (!(state.timeTriggerFired instanceof Map)) state.timeTriggerFired = [:]
 
   if (!state.accessToken) {
     try {
@@ -89,11 +90,16 @@ def initialize() {
 
 def apiPing() {
   endpoint {
+    def enabledRules = getRulesMap().values().findAll { it.enabled == true }
     renderJson([
       ok: true,
       appId: "${app.id}",
       now: now(),
-      ruleCount: getRulesMap().size()
+      ruleCount: getRulesMap().size(),
+      enabledRuleCount: enabledRules.size(),
+      timeTriggerCount: enabledRules.sum { rule ->
+        (rule.triggers ?: []).count { trigger -> trigger?.type == "time" }
+      } ?: 0
     ])
   }
 }
@@ -228,8 +234,11 @@ private def setRuleEnabled(String ruleId, Boolean enabled) {
 
 def rebuildSubscriptions() {
   unsubscribe()
+  unschedule("scheduledTimeTick")
 
   def subscribed = [] as Set
+  Boolean hasTimeTriggers = false
+
   getRulesMap().values().findAll { it.enabled == true }.each { rule ->
     (rule.triggers ?: []).each { trigger ->
       if (trigger.type == "device") {
@@ -244,8 +253,15 @@ def rebuildSubscriptions() {
             logDebug("subscribed ${device.displayName}.${attribute}")
           }
         }
+      } else if (trigger.type == "time") {
+        hasTimeTriggers = true
       }
     }
+  }
+
+  if (hasTimeTriggers) {
+    schedule("0 * * ? * *", "scheduledTimeTick")
+    logInfo("time trigger scheduler active")
   }
 }
 
@@ -279,6 +295,38 @@ private Boolean ruleMatchesEvent(Map rule, String eventDeviceId, String eventNam
       "${trigger.deviceId}" == "${eventDeviceId}" &&
       "${trigger.attribute}" == "${eventName}" &&
       compareValues(eventValue, trigger.operator ?: "eq", trigger.value)
+  }
+}
+
+def scheduledTimeTick() {
+  def currentMinute = currentMinuteSnapshot()
+  pruneTimeTriggerFired()
+
+  getRulesMap().values().findAll { it.enabled == true }.each { rule ->
+    (rule.triggers ?: []).eachWithIndex { trigger, index ->
+      if (trigger?.type != "time") return
+      if (!timeTriggerMatches(trigger, currentMinute)) return
+
+      def firedKey = "${rule.id}:${index}:${currentMinute.key}"
+      def fired = state.timeTriggerFired instanceof Map ? state.timeTriggerFired : [:]
+      if (fired[firedKey]) {
+        logDebug("time trigger already fired: ${firedKey}")
+        return
+      }
+
+      fired[firedKey] = now()
+      state.timeTriggerFired = fired
+
+      logInfo("time trigger fired: ${rule.name} (${currentMinute.time})")
+      runRule(rule, [
+        time: [
+          triggerIndex: index,
+          time: currentMinute.time,
+          day: currentMinute.day,
+          date: currentMinute.date
+        ]
+      ])
+    }
   }
 }
 
@@ -386,6 +434,8 @@ private Map normalizeRule(payload, String forcedId = null, String existingCreate
   def nowIso = isoNow()
   return [
     id: forcedId ?: sanitizeId(payload.id ?: "rule_${now()}_${Math.abs(new Random().nextInt())}"),
+    routineId: sanitizeOptionalId(payload.routineId ?: payload.groupId ?: payload?.routine?.id),
+    source: "${payload.source ?: ""}".trim().take(40),
     name: "${payload.name ?: "Nova regra"}".trim().take(120),
     enabled: payload.enabled != false,
     triggers: payload.triggers instanceof List ? payload.triggers : [],
@@ -405,7 +455,7 @@ private void validateRuleOrThrow(Map rule) {
   if (rule.actions.isEmpty()) throw new IllegalArgumentException("At least one action is required")
 
   rule.triggers.each { trigger ->
-    validateDeviceAttributeBlock(trigger, "trigger")
+    validateTriggerBlock(trigger)
   }
 
   rule.conditions.each { condition ->
@@ -434,6 +484,34 @@ private void validateDeviceAttributeBlock(block, String label) {
   def operator = "${block.operator ?: "eq"}".toLowerCase()
   if (!["eq", "neq", "gt", "gte", "lt", "lte", "contains"].contains(operator)) {
     throw new IllegalArgumentException("Unsupported operator: ${operator}")
+  }
+}
+
+private void validateTriggerBlock(trigger) {
+  if (!(trigger instanceof Map)) throw new IllegalArgumentException("Invalid trigger")
+
+  if (trigger.type == "device") {
+    validateDeviceAttributeBlock(trigger, "trigger")
+    return
+  }
+
+  if (trigger.type == "time") {
+    validateTimeTriggerBlock(trigger)
+    return
+  }
+
+  throw new IllegalArgumentException("Unsupported trigger type: ${trigger.type}")
+}
+
+private void validateTimeTriggerBlock(trigger) {
+  String time = "${trigger.time ?: ""}".trim()
+  if (!isValidTimeOfDay(time)) {
+    throw new IllegalArgumentException("Invalid time trigger. Use HH:mm")
+  }
+
+  def days = normalizeTriggerDays(trigger.days)
+  if (trigger.days != null && days.isEmpty()) {
+    throw new IllegalArgumentException("Invalid time trigger days")
   }
 }
 
@@ -525,6 +603,74 @@ private Boolean allowExecutionNow(String ruleId) {
   bucket[key] = count + 1
   state.executionRate = bucket.findAll { k, v -> "${k}".endsWith(":${minute}") }
   return true
+}
+
+private Map currentMinuteSnapshot() {
+  def tz = location?.timeZone ?: TimeZone.getDefault()
+  def date = new Date()
+  def calendar = Calendar.getInstance(tz)
+  calendar.setTime(date)
+
+  return [
+    time: date.format("HH:mm", tz),
+    key: date.format("yyyyMMddHHmm", tz),
+    date: date.format("yyyy-MM-dd", tz),
+    day: dayKeyFromCalendar(calendar.get(Calendar.DAY_OF_WEEK))
+  ]
+}
+
+private Boolean timeTriggerMatches(trigger, Map currentMinute) {
+  String triggerTime = "${trigger?.time ?: ""}".trim()
+  if (triggerTime != currentMinute.time) return false
+
+  def days = normalizeTriggerDays(trigger?.days)
+  if (days.isEmpty()) return true
+  return days.contains("${currentMinute.day}")
+}
+
+private Boolean isValidTimeOfDay(String value) {
+  def match = (value =~ /^([01]\d|2[0-3]):([0-5]\d)$/)
+  return match.matches()
+}
+
+private List normalizeTriggerDays(rawDays) {
+  if (rawDays == null) return []
+
+  def source = rawDays instanceof List ? rawDays : ["${rawDays}"]
+  def aliases = [
+    "0": "sun", "1": "mon", "2": "tue", "3": "wed", "4": "thu", "5": "fri", "6": "sat",
+    "7": "sun",
+    "sun": "sun", "sunday": "sun", "domingo": "sun", "dom": "sun",
+    "mon": "mon", "monday": "mon", "segunda": "mon", "seg": "mon",
+    "tue": "tue", "tuesday": "tue", "terca": "tue", "terça": "tue", "ter": "tue",
+    "wed": "wed", "wednesday": "wed", "quarta": "wed", "qua": "wed",
+    "thu": "thu", "thursday": "thu", "quinta": "thu", "qui": "thu",
+    "fri": "fri", "friday": "fri", "sexta": "fri", "sex": "fri",
+    "sat": "sat", "saturday": "sat", "sabado": "sat", "sábado": "sat", "sab": "sat"
+  ]
+
+  return source
+    .collect { aliases["${it}".trim().toLowerCase()] }
+    .findAll { it }
+    .unique()
+}
+
+private String dayKeyFromCalendar(Integer dayOfWeek) {
+  if (dayOfWeek == Calendar.SUNDAY) return "sun"
+  if (dayOfWeek == Calendar.MONDAY) return "mon"
+  if (dayOfWeek == Calendar.TUESDAY) return "tue"
+  if (dayOfWeek == Calendar.WEDNESDAY) return "wed"
+  if (dayOfWeek == Calendar.THURSDAY) return "thu"
+  if (dayOfWeek == Calendar.FRIDAY) return "fri"
+  return "sat"
+}
+
+private void pruneTimeTriggerFired() {
+  def fired = state.timeTriggerFired instanceof Map ? state.timeTriggerFired : [:]
+  Long cutoff = now() - 3600000L
+  state.timeTriggerFired = fired.findAll { key, timestamp ->
+    safeLong(timestamp, 0L) >= cutoff
+  }
 }
 
 private def findAllowedDevice(deviceId) {
@@ -647,9 +793,22 @@ private String sanitizeId(value) {
   return "${value ?: ""}".trim().replaceAll(/[^A-Za-z0-9_.:-]/, "_").take(80)
 }
 
+private String sanitizeOptionalId(value) {
+  def id = sanitizeId(value)
+  return id ?: null
+}
+
 private Integer safeInt(value, Integer fallback = 0) {
   try {
     return value as Integer
+  } catch (ignored) {
+    return fallback
+  }
+}
+
+private Long safeLong(value, Long fallback = 0L) {
+  try {
+    return value as Long
   } catch (ignored) {
     return fallback
   }

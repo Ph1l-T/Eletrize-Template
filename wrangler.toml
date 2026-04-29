@@ -1,0 +1,51 @@
+name = "eletrize-dashboard"
+main = "functions/hubitat-proxy.js"
+type = "service"
+workers_dev = true
+
+# Excluir node_modules do build
+build.exclude = [
+  "node_modules",
+  "node_modules/**/*",
+  ".git",
+  ".git/**/*",
+  "docs",
+  "docs/**/*",
+  "Home-Main-Port-Kit",
+  "Home-Main-Port-Kit/**/*",
+  "sql",
+  "sql/**/*"
+]
+
+# Rotas públicas e workers
+routes = [
+  { pattern = "example.com/api/hubitat/*", zone_name = "example.com" },
+  { pattern = "example.com/api/polling/*", zone_name = "example.com" }
+]
+
+# Variáveis de ambiente (configure no dashboard)
+[env.production]
+name = "eletrize-dashboard-prod"
+routes = [
+  { pattern = "seu-dominio.com/api/hubitat/*", zone_name = "seu-dominio.com" },
+  { pattern = "seu-dominio.com/api/polling/*", zone_name = "seu-dominio.com" }
+]
+
+[env.development]
+name = "eletrize-dashboard-dev"
+routes = [
+  { pattern = "seu-dominio-dev.com/api/hubitat/*", zone_name = "seu-dominio-dev.com" }
+]
+
+# KV Namespace para cache de sessões (opcional)
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "seu-kv-namespace-id"
+preview_id = "seu-kv-namespace-preview-id"
+
+# Variáveis de segurança
+[env.production.vars]
+ENVIRONMENT = "production"
+
+[env.development.vars]
+ENVIRONMENT = "development"

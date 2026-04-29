@@ -688,7 +688,7 @@ const bottomNavConfig = {
 
   // Comportamento da barra durante o scroll
   behavior: {
-    autoHideOnScroll: false,
+    autoHideOnScroll: true,
     autoHideRoutes: ["scenes-criar"],
     scrollDelta: 8,
     revealAtTop: 10,

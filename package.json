@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "dashboard-novo-cliente-template",
   "version": "1.0.0",
   "description": "Dashboard de automação residencial - template limpo para novo cliente",
@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node server.js",
     "dev:auto": "node server.js 0",
-    "preview": "node server.js"
+    "preview": "node server.js",
+    "build:pages": "node scripts/build-static.js"
   },
   "repository": {
     "type": "git",

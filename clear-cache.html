@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpar Cache - Dashboard Eletrize</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        h1 { color: #4CAF50; }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            display: block;
+            width: 100%;
+        }
+        button:hover { background: #45a049; }
+        .info {
+            background: #333;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #4CAF50;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+        code {
+            background: #2a2a2a;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔄 Limpeza de Cache</h1>
+    
+    <div class="info">
+        <h3>Antes de usar o Dashboard:</h3>
+        <ol>
+            <li>Clique em todos os botões abaixo</li>
+            <li>Aguarde as mensagens de sucesso</li>
+            <li>Clique em "Abrir Dashboard Limpo"</li>
+        </ol>
+    </div>
+
+    <button onclick="clearCaches()">1. Limpar Cache de Arquivos</button>
+    <button onclick="unregisterSW()">2. Remover Service Worker</button>
+    <button onclick="clearStorage()">3. Limpar LocalStorage</button>
+    <button onclick="clearAll()">🔥 LIMPAR TUDO</button>
+    <button onclick="openDashboard()" style="background: #2196F3;">✨ Abrir Dashboard Limpo</button>
+
+    <div id="status"></div>
+
+    <div class="info">
+        <h3>Versão Atual:</h3>
+        <p>Config: <code>v1.0.2</code></p>
+        <p>Scripts: <code>v1.0.6</code></p>
+        <p>Service Worker: <code>v1.2.2</code></p>
+    </div>
+
+    <script>
+        function showSuccess(msg) {
+            const status = document.getElementById('status');
+            const div = document.createElement('div');
+            div.className = 'success';
+            div.textContent = '✓ ' + msg;
+            div.style.display = 'block';
+            status.appendChild(div);
+        }
+
+        async function clearCaches() {
+            try {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(key => caches.delete(key)));
+                showSuccess('Cache de arquivos limpo! (' + keys.length + ' caches removidos)');
+            } catch (e) {
+                showSuccess('Erro ao limpar cache: ' + e.message);
+            }
+        }
+
+        async function unregisterSW() {
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map(reg => reg.unregister()));
+                showSuccess('Service Worker removido! (' + registrations.length + ' registros)');
+            } catch (e) {
+                showSuccess('Erro ao remover SW: ' + e.message);
+            }
+        }
+
+        function clearStorage() {
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+                showSuccess('LocalStorage e SessionStorage limpos!');
+            } catch (e) {
+                showSuccess('Erro ao limpar storage: ' + e.message);
+            }
+        }
+
+        async function clearAll() {
+            await clearCaches();
+            await unregisterSW();
+            clearStorage();
+            setTimeout(() => {
+                showSuccess('🎉 TUDO LIMPO! Agora abra o Dashboard.');
+            }, 500);
+        }
+
+        function openDashboard() {
+            window.location.href = 'index.html?nocache=' + Date.now();
+        }
+    </script>
+</body>
+</html>

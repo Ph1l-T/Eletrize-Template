@@ -1,0 +1,115 @@
+<!-- Top widget fixo -->
+<div id="spa-home-widget" class="spa-home-widget">
+  <div id="spa-weather-chip" class="spa-weather-chip" data-state="loading">
+    <div id="spa-weather-greeting" class="spa-weather-greeting">Carregando...</div>
+    <div class="spa-weather-right">
+      <img
+        id="spa-weather-icon"
+        class="spa-weather-icon"
+        src="assets/icons/weather/weather-unknown.svg"
+        alt=""
+        aria-hidden="true"
+      />
+      <span class="spa-weather-separator" aria-hidden="true">|</span>
+      <span id="spa-weather-value" class="spa-weather-value">--&deg;C</span>
+    </div>
+  </div>
+</div>
+
+<!-- Main page -->
+<main class="container main-dashboard-page">
+  <div class="page active main-dashboard-panel" id="main-page">
+    <div class="main-dashboard-layout">
+      <section class="main-panel-card" id="main-now-playing-card" data-state="loading">
+        <div class="main-panel-head">
+          <span class="main-panel-title">Now Playing</span>
+          <span class="main-panel-state" id="main-now-playing-state">Inativo</span>
+        </div>
+
+        <div class="main-now-playing-content">
+          <figure class="main-now-playing-art-wrap">
+            <img
+              id="main-now-playing-art"
+              class="main-now-playing-art"
+              src="assets/images/music-placeholder.png"
+              alt="Album"
+            />
+          </figure>
+
+          <div class="main-now-playing-meta">
+            <p class="main-now-playing-track" id="main-now-playing-track">Sem reproducao</p>
+            <p class="main-now-playing-artist" id="main-now-playing-artist">Nenhum conteudo ativo</p>
+            <p class="main-now-playing-album" id="main-now-playing-album">Aguardando player</p>
+          </div>
+        </div>
+
+        <div class="main-now-playing-controls" id="main-now-playing-controls" hidden>
+          <button
+            type="button"
+            class="main-now-playing-btn"
+            aria-label="Faixa anterior"
+            data-action="previous"
+          >
+            <img src="assets/icons/icon-previous-track.svg" alt="" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            class="main-now-playing-btn"
+            id="main-now-playing-play-btn"
+            aria-label="Pausar"
+            data-action="playPause"
+          >
+            <img
+              id="main-now-playing-play-icon"
+              src="assets/icons/icon-pause.svg"
+              alt=""
+              aria-hidden="true"
+            />
+          </button>
+          <button
+            type="button"
+            class="main-now-playing-btn"
+            aria-label="Próxima faixa"
+            data-action="next"
+          >
+            <img src="assets/icons/icon-next-track.svg" alt="" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            class="main-now-playing-btn"
+            id="main-now-playing-mute-btn"
+            aria-label="Mutar"
+            data-action="muteToggle"
+          >
+            <img
+              id="main-now-playing-mute-icon"
+              src="assets/icons/icon-volume.svg"
+              alt=""
+              aria-hidden="true"
+            />
+          </button>
+        </div>
+      </section>
+
+      <!-- Preencher dinamicamente -->
+      <section class="main-last-room-card" id="main-last-room-card"></section>
+
+      <section class="main-panel-card main-active-devices-card" id="main-active-devices-card" data-state="loading">
+        <div class="main-panel-head">
+          <span class="main-panel-title">Dispositivos Ligados</span>
+          <button
+            type="button"
+            class="main-active-devices-off-btn"
+            id="main-active-devices-off-btn"
+          >
+            Desligar todos
+          </button>
+        </div>
+        <div class="main-active-devices-list" id="main-active-devices-list">
+          <p class="main-active-empty">Carregando dispositivos...</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+

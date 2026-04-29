@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "include": ["/hubitat-proxy", "/polling"],
+  "exclude": []
+}

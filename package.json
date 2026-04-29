@@ -1,0 +1,27 @@
+﻿{
+    "name":  "dashboard-novo-cliente-template",
+    "version":  "1.0.0",
+    "description":  "Dashboard de automação residencial - template limpo para novo cliente",
+    "main":  "index.html",
+    "scripts":  {
+                    "dev":  "node server.js",
+                    "dev:auto":  "node server.js 0",
+                    "preview":  "node server.js"
+                },
+    "repository":  {
+                       "type":  "git",
+                       "url":  ""
+                   },
+    "keywords":  [
+                     "smart-home",
+                     "hubitat",
+                     "dashboard",
+                     "automation"
+                 ],
+    "author":  "Ph1l-T",
+    "license":  "MIT",
+    "devDependencies":  {
+                            "esbuild":  "^0.27.0",
+                            "lightningcss":  "^1.30.2"
+                        }
+}

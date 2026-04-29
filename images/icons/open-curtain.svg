@@ -1,0 +1,7 @@
+<svg width="32" height="36" viewBox="0 0 32 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- altura: y=12..24 | gap = 6 (entre x=13 e x=19) -->
+  <polygon points="13,12 13,24 2,18"
+    fill="white" stroke="white" stroke-width="3.2" stroke-linejoin="round"/>
+  <polygon points="19,12 19,24 30,18"
+    fill="white" stroke="white" stroke-width="3.2" stroke-linejoin="round"/>
+</svg>

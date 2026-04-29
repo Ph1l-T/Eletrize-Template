@@ -1,0 +1,24 @@
+/* Raleway Font - Local */
+@font-face {
+  font-family: 'Raleway';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('fonts/raleway/Raleway-latin-300.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Raleway';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('fonts/raleway/Raleway-latin-500.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Raleway';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('fonts/raleway/Raleway-latin-700.woff2') format('woff2');
+}

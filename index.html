@@ -4048,11 +4048,29 @@
                                     <div class="scenes-step-flow-head">
                                         <button
                                           type="button"
-                                          id="scene-step-tab-devices"
+                                          id="scene-step-tab-environment"
                                           class="scenes-step-tab is-active"
-                                          data-scene-step-tab="devices"
+                                          data-scene-step-tab="environment"
                                         >
-                                          Dispositivos
+                                          Ambiente
+                                        </button>
+                                        <button
+                                          type="button"
+                                          id="scene-step-tab-type"
+                                          class="scenes-step-tab"
+                                          data-scene-step-tab="type"
+                                          disabled
+                                        >
+                                          Tipo
+                                        </button>
+                                        <button
+                                          type="button"
+                                          id="scene-step-tab-devices"
+                                          class="scenes-step-tab"
+                                          data-scene-step-tab="devices"
+                                          disabled
+                                        >
+                                          Dispositivo
                                         </button>
                                         <button
                                           type="button"
@@ -4061,13 +4079,15 @@
                                           data-scene-step-tab="commands"
                                           disabled
                                         >
-                                          Comandos
+                                          Ação
                                         </button>
                                     </div>
 
                                     <div id="scene-step-selection" class="scenes-step-selection" hidden></div>
 
-                                    <div id="scene-step-devices-panel" class="scenes-step-panel"></div>
+                                    <div id="scene-step-environments-panel" class="scenes-step-panel"></div>
+                                    <div id="scene-step-types-panel" class="scenes-step-panel" hidden></div>
+                                    <div id="scene-step-devices-panel" class="scenes-step-panel" hidden></div>
                                     <div id="scene-step-commands-panel" class="scenes-step-panel" hidden></div>
                                 </div>
 

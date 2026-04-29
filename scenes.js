@@ -128,9 +128,11 @@
     scenes: [],
     draftSteps: [],
     editingSceneId: null,
+    selectedEnvKey: "",
+    selectedDeviceType: "",
     selectedDeviceRefId: "",
     selectedCommand: "",
-    stepPickerTab: "",
+    stepPickerTab: "environment",
     storageMode: "local",
   };
   let activeSceneConfirmationResolver = null;
@@ -1007,16 +1009,76 @@
     }
   }
 
-  function buildDeviceOptionGroups() {
+  function getEnvironmentOptions() {
     const grouped = new Map();
     state.devices.forEach((device) => {
-      const groupName = device.envName || "Ambiente";
-      if (!grouped.has(groupName)) {
-        grouped.set(groupName, []);
+      const key = String(device?.envKey || device?.envName || "global").trim();
+      if (!key) return;
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          key,
+          label: String(device?.envName || key || "Ambiente").trim(),
+          count: 0,
+        });
       }
-      grouped.get(groupName).push(device);
+      grouped.get(key).count += 1;
     });
-    return grouped;
+
+    return Array.from(grouped.values()).sort((a, b) =>
+      a.label.localeCompare(b.label, "pt-BR"),
+    );
+  }
+
+  function getSelectedEnvironmentOption() {
+    const key = String(state.selectedEnvKey || "").trim();
+    if (!key) return null;
+    return getEnvironmentOptions().find((option) => option.key === key) || null;
+  }
+
+  function getDeviceTypeOptions() {
+    const grouped = new Map();
+    state.devices.forEach((device) => {
+      if (state.selectedEnvKey && device.envKey !== state.selectedEnvKey) {
+        return;
+      }
+
+      const type = normalizeText(device?.type);
+      if (!type) return;
+      if (!grouped.has(type)) {
+        grouped.set(type, {
+          type,
+          label: device?.typeLabel || DEVICE_TYPE_LABELS[type] || type,
+          icon: resolveDeviceIcon(type),
+          count: 0,
+        });
+      }
+      grouped.get(type).count += 1;
+    });
+
+    return Array.from(grouped.values()).sort((a, b) =>
+      a.label.localeCompare(b.label, "pt-BR"),
+    );
+  }
+
+  function getSelectedDeviceTypeOption() {
+    const type = normalizeText(state.selectedDeviceType);
+    if (!type) return null;
+    return getDeviceTypeOptions().find((option) => option.type === type) || null;
+  }
+
+  function getFilteredDevices() {
+    return state.devices.filter((device) => {
+      if (state.selectedEnvKey && device.envKey !== state.selectedEnvKey) {
+        return false;
+      }
+      if (
+        state.selectedDeviceType &&
+        normalizeText(device.type) !== normalizeText(state.selectedDeviceType)
+      ) {
+        return false;
+      }
+      return true;
+    });
   }
 
   function getSelectedDevice() {
@@ -1184,23 +1246,45 @@
   }
 
   function renderStepTabState() {
+    const environmentPanel = getEl("scene-step-environments-panel");
+    const typesPanel = getEl("scene-step-types-panel");
     const devicesPanel = getEl("scene-step-devices-panel");
     const commandsPanel = getEl("scene-step-commands-panel");
     const tabButtons = document.querySelectorAll(".scenes-step-tab[data-scene-step-tab]");
+    const hasEnvironment = Boolean(state.selectedEnvKey);
+    const hasType = Boolean(state.selectedDeviceType);
     const hasDevice = Boolean(getSelectedDevice());
     const requestedTab = String(state.stepPickerTab || "").trim();
-    const activeTab =
-      requestedTab === "devices" || (requestedTab === "commands" && hasDevice)
-        ? requestedTab
-        : "";
+
+    const canOpenTab = (tab) => {
+      if (tab === "environment") return true;
+      if (tab === "type") return hasEnvironment;
+      if (tab === "devices") return hasEnvironment && hasType;
+      if (tab === "commands") return hasDevice;
+      return false;
+    };
+
+    const nextRequiredTab = () => {
+      if (!hasEnvironment) return "environment";
+      if (!hasType) return "type";
+      if (!hasDevice) return "devices";
+      if (!state.selectedCommand) return "commands";
+      return "";
+    };
+
+    const activeTab = canOpenTab(requestedTab)
+      ? requestedTab
+      : nextRequiredTab();
     state.stepPickerTab = activeTab;
 
     tabButtons.forEach((button) => {
       const tab = String(button.dataset.sceneStepTab || "").trim();
       button.classList.toggle("is-active", tab === activeTab);
-      button.disabled = tab === "commands" && !hasDevice;
+      button.disabled = !canOpenTab(tab);
     });
 
+    if (environmentPanel) environmentPanel.hidden = activeTab !== "environment";
+    if (typesPanel) typesPanel.hidden = activeTab !== "type";
     if (devicesPanel) devicesPanel.hidden = activeTab !== "devices";
     if (commandsPanel) commandsPanel.hidden = activeTab !== "commands";
   }
@@ -1209,16 +1293,49 @@
     const summary = getEl("scene-step-selection");
     if (!summary) return;
 
+    const environment = getSelectedEnvironmentOption();
+    const type = getSelectedDeviceTypeOption();
     const device = getSelectedDevice();
     const command = String(state.selectedCommand || "").trim();
 
-    if (!device && !command) {
+    if (!environment && !type && !device && !command) {
       summary.hidden = true;
       summary.innerHTML = "";
       return;
     }
 
     const chunks = [];
+
+    if (environment) {
+      chunks.push(`
+        <button
+          type="button"
+          class="scenes-selection-card"
+          data-scene-step-tab="environment"
+        >
+          <span class="scenes-selection-text">
+            <span class="scenes-selection-meta">Ambiente</span>
+            <span class="scenes-selection-title">${escapeHtml(environment.label)}</span>
+          </span>
+        </button>
+      `);
+    }
+
+    if (type) {
+      chunks.push(`
+        <button
+          type="button"
+          class="scenes-selection-card"
+          data-scene-step-tab="type"
+        >
+          <img class="scenes-selection-icon" src="${escapeHtml(type.icon)}" alt="${escapeHtml(type.label)}" />
+          <span class="scenes-selection-text">
+            <span class="scenes-selection-meta">Tipo</span>
+            <span class="scenes-selection-title">${escapeHtml(type.label)}</span>
+          </span>
+        </button>
+      `);
+    }
 
     if (device) {
       chunks.push(`
@@ -1229,6 +1346,7 @@
         >
           <img class="scenes-selection-icon" src="${escapeHtml(device.icon)}" alt="${escapeHtml(device.label)}" />
           <span class="scenes-selection-text">
+            <span class="scenes-selection-meta">Dispositivo</span>
             <span class="scenes-selection-title">${escapeHtml(device.label)}</span>
           </span>
         </button>
@@ -1243,6 +1361,7 @@
           data-scene-step-tab="commands"
         >
           <span class="scenes-selection-text">
+            <span class="scenes-selection-meta">Ação</span>
             <span class="scenes-selection-title">${escapeHtml(formatCommandLabel(command))}</span>
           </span>
         </button>
@@ -1253,56 +1372,156 @@
     summary.innerHTML = chunks.join("");
   }
 
+  function renderEnvironmentPicker() {
+    const panel = getEl("scene-step-environments-panel");
+    if (!panel) return;
+
+    const environments = getEnvironmentOptions();
+    if (!environments.length) {
+      panel.innerHTML =
+        '<div class="scenes-picker-empty">Nenhum ambiente com dispositivo disponível.</div>';
+      return;
+    }
+
+    panel.innerHTML = `
+      <div class="scenes-picker-stage-head">
+        <span class="scenes-picker-stage-kicker">1 de 4</span>
+        <h4 class="scenes-picker-stage-title">Escolha o ambiente</h4>
+      </div>
+      <ul class="scenes-picker-env-list scenes-picker-grid-list">
+        ${environments
+          .map((environment) => {
+            const isSelected = environment.key === state.selectedEnvKey;
+            return `
+              <li>
+                <button
+                  type="button"
+                  class="scenes-picker-device-item${isSelected ? " is-selected" : ""}"
+                  data-scene-env-key="${escapeHtml(environment.key)}"
+                >
+                  <span class="scenes-picker-main">
+                    <span class="scenes-picker-labels">
+                      <span class="scenes-picker-name">${escapeHtml(environment.label)}</span>
+                      <span class="scenes-picker-meta">${environment.count} dispositivo${environment.count === 1 ? "" : "s"}</span>
+                    </span>
+                  </span>
+                  <span class="scenes-picker-check" aria-hidden="true">${isSelected ? "●" : ""}</span>
+                </button>
+              </li>
+            `;
+          })
+          .join("")}
+      </ul>
+    `;
+  }
+
+  function renderDeviceTypePicker() {
+    const panel = getEl("scene-step-types-panel");
+    if (!panel) return;
+
+    if (!state.selectedEnvKey) {
+      panel.innerHTML =
+        '<div class="scenes-picker-empty">Escolha um ambiente para ver os tipos de dispositivo.</div>';
+      return;
+    }
+
+    const types = getDeviceTypeOptions();
+    if (!types.length) {
+      panel.innerHTML =
+        '<div class="scenes-picker-empty">Nenhum tipo de dispositivo disponível neste ambiente.</div>';
+      return;
+    }
+
+    panel.innerHTML = `
+      <div class="scenes-picker-stage-head">
+        <span class="scenes-picker-stage-kicker">2 de 4</span>
+        <h4 class="scenes-picker-stage-title">Escolha o tipo de dispositivo</h4>
+      </div>
+      <ul class="scenes-picker-env-list scenes-picker-grid-list">
+        ${types
+          .map((type) => {
+            const isSelected = type.type === normalizeText(state.selectedDeviceType);
+            return `
+              <li>
+                <button
+                  type="button"
+                  class="scenes-picker-device-item${isSelected ? " is-selected" : ""}"
+                  data-scene-device-type="${escapeHtml(type.type)}"
+                >
+                  <span class="scenes-picker-main">
+                    <img class="scenes-picker-icon" src="${escapeHtml(type.icon)}" alt="${escapeHtml(type.label)}" />
+                    <span class="scenes-picker-labels">
+                      <span class="scenes-picker-name">${escapeHtml(type.label)}</span>
+                      <span class="scenes-picker-meta">${type.count} item${type.count === 1 ? "" : "s"}</span>
+                    </span>
+                  </span>
+                  <span class="scenes-picker-check" aria-hidden="true">${isSelected ? "●" : ""}</span>
+                </button>
+              </li>
+            `;
+          })
+          .join("")}
+      </ul>
+    `;
+  }
+
   function renderDevicePicker() {
     const panel = getEl("scene-step-devices-panel");
     if (!panel) return;
 
-    if (!state.devices.length) {
+    if (!state.selectedEnvKey) {
       panel.innerHTML =
-        '<div class="scenes-picker-empty">Nenhum dispositivo disponível.</div>';
+        '<div class="scenes-picker-empty">Escolha um ambiente antes do dispositivo.</div>';
       return;
     }
 
-    const groups = buildDeviceOptionGroups();
-    const html = [];
+    if (!state.selectedDeviceType) {
+      panel.innerHTML =
+        '<div class="scenes-picker-empty">Escolha um tipo para ver os dispositivos.</div>';
+      return;
+    }
 
-    groups.forEach((devices, groupLabel) => {
-      html.push(`
-        <section class="scenes-picker-env-group">
-          <div class="scenes-picker-env-head">
-            <h4 class="scenes-picker-env-title">${escapeHtml(groupLabel)}</h4>
-          </div>
-          <ul class="scenes-picker-env-list">
-      `);
+    const devices = getFilteredDevices();
+    if (!devices.length) {
+      panel.innerHTML =
+        '<div class="scenes-picker-empty">Nenhum dispositivo encontrado para esta seleção.</div>';
+      return;
+    }
 
-      devices.forEach((device) => {
-        const isSelected = device.refId === state.selectedDeviceRefId;
-        html.push(`
-          <li>
-            <button
-              type="button"
-              class="scenes-picker-device-item${isSelected ? " is-selected" : ""}"
-              data-scene-device-ref="${escapeHtml(device.refId)}"
-            >
-              <span class="scenes-picker-main">
-                <img class="scenes-picker-icon" src="${escapeHtml(device.icon)}" alt="${escapeHtml(device.label)}" />
-                <span class="scenes-picker-labels">
-                  <span class="scenes-picker-name">${escapeHtml(device.label)}</span>
-                </span>
-              </span>
-              <span class="scenes-picker-check" aria-hidden="true">${isSelected ? "●" : ""}</span>
-            </button>
-          </li>
-        `);
-      });
+    const environment = getSelectedEnvironmentOption();
+    const type = getSelectedDeviceTypeOption();
 
-      html.push(`
-          </ul>
-        </section>
-      `);
-    });
-
-    panel.innerHTML = html.join("");
+    panel.innerHTML = `
+      <div class="scenes-picker-stage-head">
+        <span class="scenes-picker-stage-kicker">3 de 4</span>
+        <h4 class="scenes-picker-stage-title">Escolha o dispositivo</h4>
+        <p class="scenes-picker-stage-meta">${escapeHtml(environment?.label || "")} • ${escapeHtml(type?.label || "")}</p>
+      </div>
+      <ul class="scenes-picker-env-list">
+        ${devices
+          .map((device) => {
+            const isSelected = device.refId === state.selectedDeviceRefId;
+            return `
+              <li>
+                <button
+                  type="button"
+                  class="scenes-picker-device-item${isSelected ? " is-selected" : ""}"
+                  data-scene-device-ref="${escapeHtml(device.refId)}"
+                >
+                  <span class="scenes-picker-main">
+                    <img class="scenes-picker-icon" src="${escapeHtml(device.icon)}" alt="${escapeHtml(device.label)}" />
+                    <span class="scenes-picker-labels">
+                      <span class="scenes-picker-name">${escapeHtml(device.label)}</span>
+                    </span>
+                  </span>
+                  <span class="scenes-picker-check" aria-hidden="true">${isSelected ? "●" : ""}</span>
+                </button>
+              </li>
+            `;
+          })
+          .join("")}
+      </ul>
+    `;
   }
 
   function renderCommandPicker() {
@@ -1318,10 +1537,15 @@
     const commands = getAvailableCommands(device);
 
     panel.innerHTML = `
+      <div class="scenes-picker-stage-head">
+        <span class="scenes-picker-stage-kicker">4 de 4</span>
+        <h4 class="scenes-picker-stage-title">Escolha a ação</h4>
+      </div>
       <div class="scenes-command-context">
         <img class="scenes-command-context-icon" src="${escapeHtml(device.icon)}" alt="${escapeHtml(device.label)}" />
         <div class="scenes-command-context-text">
           <span class="scenes-command-context-title">${escapeHtml(device.label)}</span>
+          <span class="scenes-command-context-meta">${escapeHtml(device.envName || "")}</span>
         </div>
       </div>
       <div class="scenes-command-list">
@@ -1420,6 +1644,8 @@
   }
 
   function renderStepComposer() {
+    renderEnvironmentPicker();
+    renderDeviceTypePicker();
     renderDevicePicker();
     renderCommandPicker();
     renderStepTabState();
@@ -1430,15 +1656,50 @@
   }
 
   function setStepPickerTab(tab) {
-    const nextTab = String(tab || "").trim() === "commands" ? "commands" : "devices";
+    const nextTab = String(tab || "").trim();
+    if (nextTab === "type" && !state.selectedEnvKey) return;
+    if (
+      nextTab === "devices" &&
+      (!state.selectedEnvKey || !state.selectedDeviceType)
+    ) {
+      return;
+    }
     if (nextTab === "commands" && !getSelectedDevice()) return;
-    state.stepPickerTab = state.stepPickerTab === nextTab ? "" : nextTab;
+    state.stepPickerTab = ["environment", "type", "devices", "commands"].includes(nextTab)
+      ? nextTab
+      : "environment";
+    renderStepComposer();
+  }
+
+  function selectStepEnvironment(envKey) {
+    const nextEnvKey = String(envKey || "").trim();
+    if (!nextEnvKey) return;
+    state.selectedEnvKey = nextEnvKey;
+    state.selectedDeviceType = "";
+    state.selectedDeviceRefId = "";
+    state.selectedCommand = "";
+    clearStepBuilderFields();
+    state.stepPickerTab = "type";
+    renderStepComposer();
+  }
+
+  function selectStepDeviceType(type) {
+    const nextType = normalizeText(type);
+    if (!nextType) return;
+    state.selectedDeviceType = nextType;
+    state.selectedDeviceRefId = "";
+    state.selectedCommand = "";
+    clearStepBuilderFields();
+    state.stepPickerTab = "devices";
     renderStepComposer();
   }
 
   function selectStepDevice(refId) {
     const nextRefId = String(refId || "").trim();
     if (!nextRefId || !state.deviceMap.has(nextRefId)) return;
+    const device = state.deviceMap.get(nextRefId);
+    state.selectedEnvKey = device?.envKey || state.selectedEnvKey;
+    state.selectedDeviceType = normalizeText(device?.type || state.selectedDeviceType);
     state.selectedDeviceRefId = nextRefId;
     state.selectedCommand = "";
     const customInput = getEl("scene-step-custom-command");
@@ -1460,9 +1721,11 @@
   }
 
   function resetStepComposerSelection() {
+    state.selectedEnvKey = "";
+    state.selectedDeviceType = "";
     state.selectedDeviceRefId = "";
     state.selectedCommand = "";
-    state.stepPickerTab = "";
+    state.stepPickerTab = "environment";
     clearStepBuilderFields();
     renderStepComposer();
   }
@@ -1477,8 +1740,20 @@
       return;
     }
 
-    list.innerHTML = state.draftSteps
-      .map((step, index) => {
+    const groupedSteps = [];
+    const groupMap = new Map();
+
+    state.draftSteps.forEach((step, index) => {
+      const envName = stepLocationText(step) || "Sem ambiente";
+      if (!groupMap.has(envName)) {
+        const group = { envName, entries: [] };
+        groupMap.set(envName, group);
+        groupedSteps.push(group);
+      }
+      groupMap.get(envName).entries.push({ step, index });
+    });
+
+    const renderStepItem = (step, index) => {
         const title = formatStepActionTitle(step);
         const meta = formatStepMetaText(step);
         const isFirst = index === 0;
@@ -1499,6 +1774,25 @@
               <button type="button" class="scene-step-action-btn" data-step-action="remove" aria-label="Remover">×</button>
             </div>
           </li>`;
+      };
+
+    list.innerHTML = groupedSteps
+      .map((group) => {
+        const firstIndex = group.entries[0]?.index ?? 0;
+        const lastIndex = group.entries[group.entries.length - 1]?.index ?? firstIndex;
+        return `
+          <li class="scene-step-env-group">
+            <div class="scene-step-env-heading">
+              <span class="scene-step-env-name">${escapeHtml(group.envName)}</span>
+              <span class="scene-step-env-count">Etapas ${firstIndex + 1}-${lastIndex + 1}</span>
+            </div>
+            <ol class="scene-step-env-list">
+              ${group.entries
+                .map(({ step, index }) => renderStepItem(step, index))
+                .join("")}
+            </ol>
+          </li>
+        `;
       })
       .join("");
   }
@@ -2216,6 +2510,8 @@
     const cancelButton = getEl("scene-cancel-edit-btn");
     const backButton = getEl("scene-back-btn");
     const stepsList = getEl("scene-steps-preview");
+    const environmentPanel = getEl("scene-step-environments-panel");
+    const typesPanel = getEl("scene-step-types-panel");
     const devicePanel = getEl("scene-step-devices-panel");
     const commandsPanel = getEl("scene-step-commands-panel");
     const selectionSummary = getEl("scene-step-selection");
@@ -2229,6 +2525,22 @@
         setStepPickerTab(button.dataset.sceneStepTab);
       };
     });
+
+    if (environmentPanel) {
+      environmentPanel.onclick = function (event) {
+        const button = event.target.closest("[data-scene-env-key]");
+        if (!button) return;
+        selectStepEnvironment(button.dataset.sceneEnvKey);
+      };
+    }
+
+    if (typesPanel) {
+      typesPanel.onclick = function (event) {
+        const button = event.target.closest("[data-scene-device-type]");
+        if (!button) return;
+        selectStepDeviceType(button.dataset.sceneDeviceType);
+      };
+    }
 
     if (devicePanel) {
       devicePanel.onclick = function (event) {

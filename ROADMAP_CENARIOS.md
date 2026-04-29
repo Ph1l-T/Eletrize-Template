@@ -14,14 +14,14 @@ Este arquivo registra as melhorias planejadas para modernizar o criador/editor d
 
 ## Prioridade 2
 
-- Transformar o fluxo em um montador guiado:
+- [x] Transformar o fluxo em um montador guiado:
   1. ambiente;
   2. tipo de dispositivo;
   3. dispositivo;
   4. acao;
   5. parametros da acao.
-- Usar uma folha inferior/modal no mobile para escolher dispositivos e acoes.
-- Agrupar a lista de acoes por ambiente e numerar cada etapa.
+- [x] Usar uma folha inferior/modal no mobile para escolher dispositivos e acoes.
+- [x] Agrupar a lista de acoes por ambiente e numerar cada etapa.
 
 ## Prioridade 3
 

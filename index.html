@@ -4082,15 +4082,26 @@
                                     />
                                 </label>
 
-                                <label class="scenes-field">
-                                    <span class="scenes-field-label">Valor (opcional)</span>
+                                <label class="scenes-field" id="scene-step-value-wrap" hidden>
+                                    <span class="scenes-field-label" id="scene-step-value-label">Valor</span>
                                     <input
                                       id="scene-step-value"
                                       class="scenes-input"
-                                      type="text"
+                                      type="number"
+                                      inputmode="numeric"
                                       maxlength="32"
                                       placeholder="Ex: 50"
                                     />
+                                    <input
+                                      id="scene-step-value-range"
+                                      class="scenes-range"
+                                      type="range"
+                                      min="0"
+                                      max="100"
+                                      step="1"
+                                      hidden
+                                    />
+                                    <span class="scenes-field-help" id="scene-step-value-help"></span>
                                 </label>
 
                                 <button type="button" id="scene-step-add-btn" class="scenes-btn scenes-btn--secondary">

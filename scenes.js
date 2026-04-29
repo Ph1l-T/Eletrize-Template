@@ -1046,6 +1046,143 @@
     return command;
   }
 
+  function getCommandValueConfig(device, command) {
+    const normalized = normalizeText(command);
+    const deviceType = normalizeText(device?.type);
+
+    if (!normalized) {
+      return { visible: false };
+    }
+
+    if (command === CUSTOM_COMMAND_TOKEN) {
+      return {
+        visible: true,
+        kind: "text",
+        label: "Valor personalizado",
+        placeholder: "Opcional",
+        help: "Use apenas se o comando personalizado exigir parametro.",
+      };
+    }
+
+    if (normalized === "setlevel") {
+      return {
+        visible: true,
+        kind: "range",
+        label: "Intensidade",
+        min: 0,
+        max: 100,
+        step: 1,
+        defaultValue: 50,
+        suffix: "%",
+        help: "Defina a intensidade da luz.",
+      };
+    }
+
+    if (normalized === "setvolume" || normalized === "volume") {
+      return {
+        visible: true,
+        kind: "range",
+        label: "Volume",
+        min: 0,
+        max: 100,
+        step: 1,
+        defaultValue: 40,
+        suffix: "%",
+        help: "Defina o volume desejado.",
+      };
+    }
+
+    if (
+      deviceType === "comfort" &&
+      (normalized.includes("temperature") ||
+        normalized.includes("setpoint") ||
+        normalized.includes("cooling"))
+    ) {
+      return {
+        visible: true,
+        kind: "range",
+        label: "Temperatura",
+        min: 16,
+        max: 30,
+        step: 1,
+        defaultValue: 22,
+        suffix: " graus",
+        help: "Defina a temperatura do ar-condicionado.",
+      };
+    }
+
+    return { visible: false };
+  }
+
+  function selectedValueConfig() {
+    return getCommandValueConfig(getSelectedDevice(), state.selectedCommand);
+  }
+
+  function cleanStepDeviceName(step) {
+    const raw = String(step?.deviceName || step?.deviceId || "").trim();
+    if (!raw) return "Dispositivo";
+    return raw.replace(/^[^-]+ - /, "").trim() || raw;
+  }
+
+  function stepLocationText(step) {
+    return String(step?.envName || "").trim();
+  }
+
+  function formatStepValueText(step) {
+    const value = String(step?.value || "").trim();
+    if (!value) return "";
+
+    const config = getCommandValueConfig(
+      { type: step?.deviceType },
+      step?.command,
+    );
+    return `${value}${config.suffix || ""}`;
+  }
+
+  function formatStepActionTitle(step) {
+    const command = normalizeText(step?.command);
+    const name = cleanStepDeviceName(step);
+    const valueText = formatStepValueText(step);
+
+    if (command === "on" || command === "poweron") return `Ligar ${name}`;
+    if (command === "off" || command === "poweroff") return `Desligar ${name}`;
+    if (command === "open") return `Abrir ${name}`;
+    if (command === "close") return `Fechar ${name}`;
+    if (command === "stop") return `Parar ${name}`;
+    if (command === "setlevel") {
+      return `Ajustar ${name}${valueText ? ` para ${valueText}` : ""}`;
+    }
+    if (command === "setvolume" || command === "volume") {
+      return `Volume de ${name}${valueText ? ` em ${valueText}` : ""}`;
+    }
+    if (command === "mute") return `Mutar ${name}`;
+    if (command === "unmute") return `Desmutar ${name}`;
+    if (command === "play") return `Reproduzir ${name}`;
+    if (command === "pause") return `Pausar ${name}`;
+    if (command === "nexttrack") return `Proxima faixa em ${name}`;
+    if (command === "previoustrack") return `Faixa anterior em ${name}`;
+    if (command === "temp22") return `Ajustar ${name} para 22 graus`;
+
+    return `${formatCommandLabel(step?.command)} em ${name}`;
+  }
+
+  function formatStepMetaText(step) {
+    const parts = [];
+    const location = stepLocationText(step);
+    if (location) parts.push(location);
+    if (step?.deviceType) {
+      parts.push(DEVICE_TYPE_LABELS[normalizeText(step.deviceType)] || step.deviceType);
+    }
+    const valueText = formatStepValueText(step);
+    if (
+      valueText &&
+      !["setlevel", "setvolume", "volume"].includes(normalizeText(step?.command))
+    ) {
+      parts.push(valueText);
+    }
+    return parts.join(" • ");
+  }
+
   function renderStepTabState() {
     const devicesPanel = getEl("scene-step-devices-panel");
     const commandsPanel = getEl("scene-step-commands-panel");
@@ -1216,6 +1353,59 @@
     addButton.disabled = !getSelectedDevice() || !getResolvedSelectedCommand();
   }
 
+  function syncValueControlVisibility() {
+    const wrap = getEl("scene-step-value-wrap");
+    const label = getEl("scene-step-value-label");
+    const valueInput = getEl("scene-step-value");
+    const rangeInput = getEl("scene-step-value-range");
+    const help = getEl("scene-step-value-help");
+    if (!wrap || !valueInput || !rangeInput) return;
+
+    const config = selectedValueConfig();
+    const visible = config.visible === true;
+    wrap.hidden = !visible;
+
+    if (!visible) {
+      valueInput.value = "";
+      rangeInput.value = "";
+      rangeInput.hidden = true;
+      if (help) help.textContent = "";
+      return;
+    }
+
+    if (label) label.textContent = config.label || "Valor";
+    valueInput.placeholder = config.placeholder || "";
+    valueInput.type = config.kind === "range" ? "number" : "text";
+
+    if (config.kind === "range") {
+      const min = Number(config.min ?? 0);
+      const max = Number(config.max ?? 100);
+      const step = Number(config.step ?? 1);
+      valueInput.min = String(min);
+      valueInput.max = String(max);
+      valueInput.step = String(step);
+      rangeInput.min = String(min);
+      rangeInput.max = String(max);
+      rangeInput.step = String(step);
+      rangeInput.hidden = false;
+
+      if (!String(valueInput.value || "").trim()) {
+        valueInput.value = String(config.defaultValue ?? min);
+      }
+      rangeInput.value = valueInput.value;
+    } else {
+      valueInput.removeAttribute("min");
+      valueInput.removeAttribute("max");
+      valueInput.removeAttribute("step");
+      rangeInput.hidden = true;
+    }
+
+    if (help) {
+      const suffix = config.suffix ? ` Atual: ${valueInput.value}${config.suffix}.` : "";
+      help.textContent = `${config.help || ""}${suffix}`.trim();
+    }
+  }
+
   function syncCustomCommandVisibility() {
     const wrap = getEl("scene-step-custom-command-wrap");
     const customInput = getEl("scene-step-custom-command");
@@ -1235,6 +1425,7 @@
     renderStepTabState();
     renderSelectedStepSummary();
     syncCustomCommandVisibility();
+    syncValueControlVisibility();
     renderAddStepButtonState();
   }
 
@@ -1288,21 +1479,23 @@
 
     list.innerHTML = state.draftSteps
       .map((step, index) => {
-        const valueText = step.value ? `: ${step.value}` : "";
-        const envPrefix = step.envName ? `${step.envName} - ` : "";
-        const commandLabel = formatCommandLabel(step.command);
+        const title = formatStepActionTitle(step);
+        const meta = formatStepMetaText(step);
+        const isFirst = index === 0;
+        const isLast = index === state.draftSteps.length - 1;
 
         return `
           <li class="scene-step-item" data-step-id="${escapeHtml(step.id)}">
+            <span class="scene-step-index" aria-hidden="true">${index + 1}</span>
             <div class="scene-step-main">
-              <p class="scene-step-title">${escapeHtml(
-                `${index + 1}. ${envPrefix}${step.deviceName}`
-              )}</p>
-              <p class="scene-step-meta">${escapeHtml(
-                `${commandLabel}${valueText}`
-              )}</p>
+              <p class="scene-step-title">${escapeHtml(title)}</p>
+              ${meta ? `<p class="scene-step-meta">${escapeHtml(meta)}</p>` : ""}
             </div>
             <div class="scene-step-actions">
+              <button type="button" class="scene-step-action-btn" data-step-action="test" aria-label="Testar ação" title="Testar">▶</button>
+              <button type="button" class="scene-step-action-btn" data-step-action="duplicate" aria-label="Duplicar ação" title="Duplicar">⧉</button>
+              <button type="button" class="scene-step-action-btn" data-step-action="move-up" aria-label="Mover para cima" title="Mover para cima" ${isFirst ? "disabled" : ""}>↑</button>
+              <button type="button" class="scene-step-action-btn" data-step-action="move-down" aria-label="Mover para baixo" title="Mover para baixo" ${isLast ? "disabled" : ""}>↓</button>
               <button type="button" class="scene-step-action-btn" data-step-action="remove" aria-label="Remover">×</button>
             </div>
           </li>`;
@@ -1312,9 +1505,11 @@
 
   function clearStepBuilderFields() {
     const valueInput = getEl("scene-step-value");
+    const rangeInput = getEl("scene-step-value-range");
     const customInput = getEl("scene-step-custom-command");
 
     if (valueInput) valueInput.value = "";
+    if (rangeInput) rangeInput.value = "";
     if (customInput) customInput.value = "";
   }
 
@@ -1357,6 +1552,71 @@
     renderDraftSteps();
     if (state.draftSteps.length > 0) {
       clearBuilderStepsValidation();
+    }
+  }
+
+  function moveStep(stepId, direction) {
+    const index = state.draftSteps.findIndex((step) => step.id === stepId);
+    if (index < 0) return;
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= state.draftSteps.length) return;
+    const copy = state.draftSteps.slice();
+    const [item] = copy.splice(index, 1);
+    copy.splice(nextIndex, 0, item);
+    state.draftSteps = copy;
+    renderDraftSteps();
+    clearBuilderStepsValidation();
+  }
+
+  function duplicateStep(stepId) {
+    const index = state.draftSteps.findIndex((step) => step.id === stepId);
+    if (index < 0) return;
+    const clone = {
+      ...state.draftSteps[index],
+      id: makeId("step"),
+    };
+    state.draftSteps.splice(index + 1, 0, clone);
+    renderDraftSteps();
+    clearBuilderStepsValidation();
+  }
+
+  async function testDraftStep(stepId, triggerButton) {
+    const step = state.draftSteps.find((item) => item.id === stepId);
+    if (!step) return;
+
+    if (typeof sendHubitatCommand !== "function") {
+      setFeedback("sendHubitatCommand indisponível.", true);
+      return;
+    }
+
+    if (!canUseSceneStep(step, "control")) {
+      setFeedback("Sem permissão para testar esta ação.", true);
+      return;
+    }
+
+    const originalLabel = triggerButton?.textContent || "";
+    if (triggerButton) {
+      triggerButton.disabled = true;
+      triggerButton.textContent = "...";
+    }
+
+    const title = formatStepActionTitle(step);
+    setFeedback(`Testando ação: ${title}`, false);
+
+    try {
+      await executeSceneStep(step);
+      applyLocalState(step);
+      if (typeof syncAllVisibleControls === "function") {
+        syncAllVisibleControls(true);
+      }
+      setFeedback(`Ação testada: ${title}`, false);
+    } catch (error) {
+      setFeedback(`Falha ao testar ação: ${error?.message || error}`, true);
+    } finally {
+      if (triggerButton) {
+        triggerButton.disabled = false;
+        triggerButton.textContent = originalLabel || "▶";
+      }
     }
   }
 
@@ -1813,16 +2073,36 @@
 
     list.innerHTML = state.scenes
       .map((scene) => {
+        const steps = toArray(scene.steps);
+        const preview = steps.slice(0, 3);
+        const remaining = Math.max(0, steps.length - preview.length);
+        const previewHtml = preview.length
+          ? `
+            <ol class="scene-user-preview">
+              ${preview
+                .map((step) => `<li>${escapeHtml(formatStepActionTitle(step))}</li>`)
+                .join("")}
+              ${
+                remaining
+                  ? `<li class="scene-user-preview-more">+ ${remaining} ação${remaining > 1 ? "es" : ""}</li>`
+                  : ""
+              }
+            </ol>
+          `
+          : "";
+
         return `
           <article class="scene-user-card" data-scene-id="${escapeHtml(scene.id)}">
             <div class="scene-user-head">
               <h3 class="scene-user-name">${escapeHtml(scene.name)}</h3>
+              <span class="scene-user-count">${steps.length} ação${steps.length === 1 ? "" : "es"}</span>
             </div>
             ${
               scene.description
                 ? `<p class="scene-user-desc">${escapeHtml(scene.description)}</p>`
                 : ""
             }
+            ${previewHtml}
             <div class="scene-user-actions">
               <button type="button" class="scenes-btn scenes-btn--primary" data-scene-action="run" data-scene-id="${escapeHtml(scene.id)}">Executar</button>
               <button type="button" class="scenes-btn scenes-btn--secondary" data-scene-action="edit" data-scene-id="${escapeHtml(scene.id)}">Editar</button>
@@ -1844,6 +2124,28 @@
 
     if (action === "remove") {
       removeStep(stepId);
+      return;
+    }
+
+    if (action === "move-up") {
+      moveStep(stepId, -1);
+      return;
+    }
+
+    if (action === "move-down") {
+      moveStep(stepId, 1);
+      return;
+    }
+
+    if (action === "duplicate") {
+      duplicateStep(stepId);
+      return;
+    }
+
+    if (action === "test") {
+      testDraftStep(stepId, button).catch((error) => {
+        setFeedback(`Falha ao testar ação: ${error?.message || error}`, true);
+      });
     }
   }
 
@@ -1918,6 +2220,8 @@
     const commandsPanel = getEl("scene-step-commands-panel");
     const selectionSummary = getEl("scene-step-selection");
     const customInput = getEl("scene-step-custom-command");
+    const valueInput = getEl("scene-step-value");
+    const rangeInput = getEl("scene-step-value-range");
     const nameInput = getEl("scene-name-input");
 
     document.querySelectorAll(".scenes-step-tab[data-scene-step-tab]").forEach((button) => {
@@ -1953,6 +2257,24 @@
     if (customInput) {
       customInput.oninput = function () {
         renderAddStepButtonState();
+      };
+    }
+
+    if (valueInput) {
+      valueInput.oninput = function () {
+        if (rangeInput && !rangeInput.hidden) {
+          rangeInput.value = valueInput.value || rangeInput.min || "0";
+        }
+        syncValueControlVisibility();
+      };
+    }
+
+    if (rangeInput) {
+      rangeInput.oninput = function () {
+        if (valueInput) {
+          valueInput.value = rangeInput.value;
+        }
+        syncValueControlVisibility();
       };
     }
 
@@ -2094,4 +2416,3 @@
     });
   };
 })(window);
-

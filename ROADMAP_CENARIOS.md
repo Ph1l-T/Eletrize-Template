@@ -4,13 +4,13 @@ Este arquivo registra as melhorias planejadas para modernizar o criador/editor d
 
 ## Prioridade 1
 
-- Trocar descricoes tecnicas por frases visuais de acao, como `Ligar Lustre da Sala`.
-- Substituir o campo generico `Valor (opcional)` por controles especificos:
+- [x] Trocar descricoes tecnicas por frases visuais de acao, como `Ligar Lustre`.
+- [x] Substituir o campo generico `Valor (opcional)` por controles especificos:
   - slider para intensidade de luz;
   - slider para volume;
   - seletor de temperatura para ar-condicionado;
   - botoes diretos para cortinas e midia.
-- Permitir reordenar, remover, duplicar e testar cada acao isoladamente.
+- [x] Permitir reordenar, remover, duplicar e testar cada acao isoladamente.
 
 ## Prioridade 2
 

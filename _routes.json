@@ -1,5 +1,5 @@
 {
   "version": 1,
-  "include": ["/hubitat-proxy", "/polling"],
+  "include": ["/hubitat-proxy", "/polling", "/rule-engine-proxy"],
   "exclude": []
 }

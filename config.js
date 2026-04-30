@@ -25,9 +25,9 @@ const CLIENT_CONFIG = {
 
   // Segredos e regras de allowlist ficam no backend (Cloudflare Functions),
   auth: {
-    enabled: false,
-    supabaseUrl: "",
-    supabaseAnonKey: "",
+    enabled: true,
+    supabaseUrl: "https://ofwfnadfypoajlplgwbx.supabase.co",
+    supabaseAnonKey: "sb_publishable_QP6s772iVjOYfiwjPbfthQ_-eYLTp3I",
     allowEmailSignUp: false,
     allowGoogleLogin: false,
     requireEmailConfirmation: true,
